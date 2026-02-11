@@ -29,7 +29,22 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(OusterPointXYZIRT,
     (uint32_t, t, t) (uint16_t, reflectivity, reflectivity)
     (uint8_t, ring, ring) (uint16_t, noise, noise) (uint32_t, range, range)
 )
-
+struct EIGEN_ALIGN16 SickPointXYZIRT {
+    float x;
+    float y;
+    float z;
+    float intensity;
+    float time;
+    int8_t ring;
+};
+POINT_CLOUD_REGISTER_POINT_STRUCT(SickPointXYZIRT,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (float, intensity, i)
+    (float, time, ts)
+    (int8_t, ring, ring)
+)
 struct RobosensePointXYZIRT {
      PCL_ADD_POINT4D;
      PCL_ADD_INTENSITY;
@@ -84,6 +99,7 @@ private:
     pcl::PointCloud<PointXYZIRT>::Ptr laserCloudIn;
     pcl::PointCloud<OusterPointXYZIRT>::Ptr tmpOusterCloudIn;
     pcl::PointCloud<RobosensePointXYZIRT>::Ptr tmpRobosenseCloudIn;
+    pcl::PointCloud<SickPointXYZIRT>::Ptr tmpSickCloudIn;
     pcl::PointCloud<PointType>::Ptr   fullCloud;
     pcl::PointCloud<PointType>::Ptr   extractedCloud;
 
@@ -150,6 +166,7 @@ public:
         laserCloudIn.reset(new pcl::PointCloud<PointXYZIRT>());
         tmpOusterCloudIn.reset(new pcl::PointCloud<OusterPointXYZIRT>());
         tmpRobosenseCloudIn.reset(new pcl::PointCloud<RobosensePointXYZIRT>());
+        tmpSickCloudIn.reset(new pcl::PointCloud<SickPointXYZIRT>());
         fullCloud.reset(new pcl::PointCloud<PointType>());
         extractedCloud.reset(new pcl::PointCloud<PointType>());
 
@@ -264,6 +281,22 @@ public:
                 dst.intensity = src.intensity;
                 dst.ring = src.ring;
                 dst.time = src.t * 1e-9f;
+            }
+        }
+        else if (sensor == SensorType::SICK){
+            pcl::moveFromROSMsg(currentCloudMsg, *tmpSickCloudIn);
+            laserCloudIn->points.resize(tmpSickCloudIn->size());
+            laserCloudIn->is_dense = tmpSickCloudIn->is_dense;
+            for (size_t i = 0; i < tmpSickCloudIn->size(); i++)
+            {
+                auto &src = tmpSickCloudIn->points[i];
+                auto &dst = laserCloudIn->points[i];
+                dst.x = src.x;
+                dst.y = src.y;
+                dst.z = src.z;
+                dst.intensity = src.intensity;
+                dst.ring = src.ring;
+                dst.time = src.time * 1e-9f;
             }
         }
         else if(sensor==SensorType::ROBOSENSE)
@@ -601,7 +634,7 @@ public:
                 continue;
 
             int columnIdn = -1;
-            if (sensor == SensorType::VELODYNE || sensor == SensorType::OUSTER || sensor == SensorType::ROBOSENSE)
+            if (sensor == SensorType::VELODYNE || sensor == SensorType::OUSTER || sensor == SensorType::ROBOSENSE || sensor == SensorType::SICK)
             {
                 float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;
                 static float ang_res_x = 360.0/float(Horizon_SCAN);
