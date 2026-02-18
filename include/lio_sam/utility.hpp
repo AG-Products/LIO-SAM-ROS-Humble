@@ -100,6 +100,10 @@ public:
     float lidarMinRange;
     float lidarMaxRange;
 
+    // TF publication settings
+    bool publishOdomToLidarTF;
+    bool publishOdomToBaseTF;
+
     // IMU
     float imuAccNoise;
     float imuGyrNoise;
@@ -318,6 +322,12 @@ public:
         get_parameter("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity);
         declare_parameter("globalMapVisualizationLeafSize", 1.0);
         get_parameter("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize);
+
+        declare_parameter("publishOdomToLidarTF", true);
+        get_parameter("publishOdomToLidarTF", publishOdomToLidarTF);
+
+        declare_parameter("publishOdomToBaseTF", true);
+        get_parameter("publishOdomToBaseTF", publishOdomToBaseTF);
 
         usleep(100);
     }
