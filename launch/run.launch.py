@@ -24,6 +24,13 @@ def generate_launch_description():
 
     return LaunchDescription([
         params_declare,
+        # Node(
+        #     package='tf2_ros',
+        #     executable='static_transform_publisher',
+        #     arguments='0.0 0.0 0.0 0.0 0.0 0.0 lio_map lio_odom'.split(' '),
+        #     parameters=[parameter_file],
+        #     output='screen'
+        #     ),
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -31,6 +38,13 @@ def generate_launch_description():
             parameters=[parameter_file],
             output='screen'
             ),
+        # Node(
+        #     package='tf2_ros',
+        #     executable='static_transform_publisher',
+        #     arguments='0.525 -0.474 1.462 0.0 0.0 0.0 map lio_map'.split(' '),
+        #     parameters=[parameter_file],
+        #     output='screen'
+        #     ),
         # Node(
         #     package='robot_state_publisher',
         #     executable='robot_state_publisher',
@@ -80,6 +94,7 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             arguments=['-d', rviz_config_file],
+            parameters = [{'use_sim_time':True}],
             output='screen'
         )
     ])
