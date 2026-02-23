@@ -58,7 +58,8 @@ public:
 
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
       pubLaserCloudSurround;
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubLaserOdometryGlobal;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubLaserOdometryGlobal,
+      pubBaseLinkOdometryGlobal;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
       pubLaserOdometryIncremental;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubKeyPoses;
@@ -177,6 +178,8 @@ public:
         "lio_sam/mapping/map_global", 1);
     pubLaserOdometryGlobal = create_publisher<nav_msgs::msg::Odometry>(
         "lio_sam/mapping/odometry", qos);
+    pubBaseLinkOdometryGlobal = create_publisher<nav_msgs::msg::Odometry>(
+        "lio_sam/mapping/odometry_base_link", qos);
     pubLaserOdometryIncremental = create_publisher<nav_msgs::msg::Odometry>(
         "lio_sam/mapping/odometry_incremental", qos);
     pubPath = create_publisher<nav_msgs::msg::Path>("lio_sam/mapping/path", 1);
@@ -1822,6 +1825,38 @@ public:
         0,    0, 0, 0.01, 0, 0, 0, 0,    0, 0, 0.01, 0, 0, 0, 0,    0, 0, 0.01};
 
     pubLaserOdometryGlobal->publish(laserOdometryROS);
+
+    tf2::Quaternion q;
+    q.setRPY(transformTobeMapped[0],  // roll
+             transformTobeMapped[1],  // pitch
+             transformTobeMapped[2]); // yaw
+
+    tf2::Vector3 t(transformTobeMapped[3],  // x
+                   transformTobeMapped[4],  // y
+                   transformTobeMapped[5]); // z
+
+    tf2::Transform T_odom_lidar(q, t);
+
+    try {
+      tf2::fromMsg(
+          tfBuffer->lookupTransform(lidarFrame, baselinkFrame, rclcpp::Time(0)),
+          lidar2Baselink);
+      tf2::Transform T_odom_base = T_odom_lidar * lidar2Baselink;
+      nav_msgs::msg::Odometry baseLinkOdometryROS;
+      baseLinkOdometryROS.header.stamp = timeLaserInfoStamp;
+      baseLinkOdometryROS.header.frame_id = odometryFrame;
+      baseLinkOdometryROS.child_frame_id = baselinkFrame;
+
+      baseLinkOdometryROS.pose.pose.position.x = T_odom_base.getOrigin().x();
+      baseLinkOdometryROS.pose.pose.position.y = T_odom_base.getOrigin().y();
+      baseLinkOdometryROS.pose.pose.position.z = T_odom_base.getOrigin().z();
+
+      baseLinkOdometryROS.pose.pose.orientation =
+          tf2::toMsg(T_odom_base.getRotation());
+      pubBaseLinkOdometryGlobal->publish(baseLinkOdometryROS);
+    } catch (tf2::TransformException ex) {
+      RCLCPP_ERROR(get_logger(), "%s", ex.what());
+    }
 
     // Publish TF
     quat_tf.setRPY(transformTobeMapped[0], transformTobeMapped[1],

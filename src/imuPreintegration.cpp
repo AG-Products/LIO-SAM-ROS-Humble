@@ -37,18 +37,13 @@ public:
   Eigen::Isometry3d imuOdomAffineFront;
   Eigen::Isometry3d imuOdomAffineBack;
 
-  std::shared_ptr<tf2_ros::Buffer> tfBuffer;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tfBroadcaster;
-  std::shared_ptr<tf2_ros::TransformListener> tfListener;
-  tf2::Stamped<tf2::Transform> lidar2Baselink;
-
   double lidarOdomTime = -1;
   deque<nav_msgs::msg::Odometry> imuOdomQueue;
 
   TransformFusion(const rclcpp::NodeOptions &options)
       : ParamServer("lio_sam_transformFusion", options) {
-    tfBuffer = std::make_shared<tf2_ros::Buffer>(get_clock());
-    tfListener = std::make_shared<tf2_ros::TransformListener>(*tfBuffer);
+    // tfBuffer = std::make_shared<tf2_ros::Buffer>(get_clock());
+    // tfListener = std::make_shared<tf2_ros::TransformListener>(*tfBuffer);
 
     callbackGroupImuOdometry =
         create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -74,8 +69,6 @@ public:
     pubImuOdometry =
         create_publisher<nav_msgs::msg::Odometry>(odomTopic, qos_imu);
     pubImuPath = create_publisher<nav_msgs::msg::Path>("lio_sam/imu/path", qos);
-
-    tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
   }
 
   Eigen::Isometry3d odom2affine(nav_msgs::msg::Odometry odom) {
@@ -124,7 +117,7 @@ public:
     pubImuOdometry->publish(laserOdometry);
 
     // publish tf
-    if (lidarFrame != baselinkFrame) {
+    if (publishOdomToBaseTF && lidarFrame != baselinkFrame) {
       try {
         tf2::fromMsg(tfBuffer->lookupTransform(lidarFrame, baselinkFrame,
                                                rclcpp::Time(0)),
@@ -136,9 +129,7 @@ public:
                                       tf2_ros::fromMsg(odomMsg->header.stamp),
                                       odometryFrame);
       tCur = tb;
-    }
 
-    if (publishOdomToBaseTF) {
       geometry_msgs::msg::TransformStamped ts;
       tf2::convert(tCur, ts);
       ts.child_frame_id = baselinkFrame;

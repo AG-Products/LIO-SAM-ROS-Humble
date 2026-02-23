@@ -3,15 +3,15 @@
 
     # Topics
     pointCloudTopic: "lidar_points_filtered"                   # Point cloud data
-    imuTopic: "/imu/aligned"                        # IMU data
+    imuTopic: "/imu/fusion_ready"                        # IMU data
     odomTopic: "odometry/imu"                    # IMU pre-preintegration odometry, same frequency as IMU
     gpsTopic: "odometry/gpsz"                    # GPS odometry topic from navsat, see module_navsat.launch file
 
     # Frames
     lidarFrame: "lidar_link"
     baselinkFrame: "base_link"
-    odometryFrame: "odom"
-    mapFrame: "map"
+    odometryFrame: "lio_odom"
+    mapFrame: "lio_map"
 
     #odom publication
     publishOdomToLidarTF: false                    
